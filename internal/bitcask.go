@@ -12,6 +12,7 @@ import (
 )
 
 type Bitcask struct{
+	sync.Mutex
 	bufPool sync.Pool
 	df      *datafile.DataFile
 	keydir	keydir.KeyDir
@@ -35,6 +36,9 @@ func Open(filename string) (*Bitcask, error) {
 }
 
 func (b *Bitcask) Put(key string, value []byte) error {
+	b.Lock()
+	defer b.Unlock()
+
 	if len(key) == 0 {
 		return ErrEmptyKey
 	}
@@ -43,6 +47,9 @@ func (b *Bitcask) Put(key string, value []byte) error {
 }
 
 func (b *Bitcask) Get(key string) ([]byte, error) {
+	b.Lock()
+	defer b.Unlock()
+
 	if len(key) == 0{
 		return nil, ErrEmptyKey
 	}
@@ -57,4 +64,11 @@ func (b *Bitcask) Get(key string) ([]byte, error) {
 	}
 
 	return row.Value, nil
+}
+
+func (b *Bitcask) Delete(key string) error {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.delete(key)
 }

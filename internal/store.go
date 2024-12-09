@@ -76,3 +76,13 @@ func (b *Bitcask) get(k string) (Row, error) {
 		Value: value,
 	}, nil
 }
+
+func (b *Bitcask) delete(key string) error {
+	if err := b.put(b.df, key, []byte{}); err!=nil{
+		return err
+	}
+
+	delete(b.keydir, key)
+
+	return nil
+}
