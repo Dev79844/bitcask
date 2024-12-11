@@ -13,13 +13,41 @@ import (
 
 type Bitcask struct{
 	sync.Mutex
-	bufPool sync.Pool
-	df      *datafile.DataFile
-	keydir	keydir.KeyDir
+	bufPool 	sync.Pool
+	df      	*datafile.DataFile
+	keydir		keydir.KeyDir
+	staleFiles	map[int]*datafile.DataFile
 }
 
-func Open(filename string) (*Bitcask, error) {
-	df, err := datafile.New("./tmp", 0)
+func Open(dir string) (*Bitcask, error) {
+	files, err := getFiles(dir)
+	if err!=nil{
+		return nil, fmt.Errorf("error getting the existing files: %v", err)
+	}
+
+	var(
+		index = 0
+		staleFiles = map[int]*datafile.DataFile{}
+	)
+
+	if len(files) > 0{
+		ids, err := getIDs(files)
+		if err!=nil{
+			return nil, fmt.Errorf("error getting ids of files: %v", err)
+		}
+
+		index = ids[len(ids) - 1] + 1
+
+		for _,idx := range ids{
+			df, err := datafile.New(dir, idx)
+			if err != nil {
+				return nil, err
+			}
+			staleFiles[idx] = df
+		}
+	}
+
+	df, err := datafile.New(dir, index)
 	if err!=nil{
 		return nil, fmt.Errorf("error creating a new datafile: %v", err)
 	}
@@ -32,6 +60,7 @@ func Open(filename string) (*Bitcask, error) {
 			return bytes.NewBuffer([]byte{})
 		}},
 		keydir: kd,
+		staleFiles: staleFiles,
 		}, nil
 }
 
