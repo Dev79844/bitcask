@@ -169,3 +169,24 @@ func (b *Bitcask) Merge() error {
 
 	return b.RunCompaction()
 }
+
+func (b *Bitcask) Close() error {
+	b.Lock()
+	defer b.Unlock()
+
+	if err := b.generateHintFiles(); err!=nil{
+		return err
+	}
+
+	if err := b.df.Close(); err!=nil{
+		return err
+	}
+
+	for _, df := range b.staleFiles {
+		if err := df.Close(); err!=nil{
+			return err
+		}
+	}
+
+	return nil
+}
