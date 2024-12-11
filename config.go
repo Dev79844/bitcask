@@ -3,18 +3,20 @@ package bitcask
 import "time"
 
 const (
-	defaultDir = "./tmp"
-	defaultMaxActiveFileSize = int64(1<<32) // 4GB
-	defaultCompactInterval = time.Hour * 6
-	defaultSyncInterval = time.Minute * 1
+	defaultDir 							= 	"./tmp"
+	defaultMaxActiveFileSize 			= 	int64(1<<32) // 4GB
+	defaultCompactInterval 				= 	time.Hour * 6
+	defaultSyncInterval 				=	time.Minute * 1
+	defaultActiveFileSizeCheckInterval 	= 	time.Minute * 1
 )
 
 type Options struct{
-	dir					string 			//Path for storing active files
-	alwaysFSync			bool 			//Always flush to disk after a write
-	compactInterval 	time.Duration 	//time interval for compaction
-	syncInterval    	time.Duration 	// time interval for fsync
-	maxActiveFileSize	int64 			//max active file size
+	dir						string 			//Path for storing active files
+	alwaysFSync				bool 			//Always flush to disk after a write
+	compactInterval 		time.Duration 	//time interval for compaction
+	syncInterval    		*time.Duration 	// time interval for fsync
+	maxActiveFileSize		int64 			//max active file size
+	checkFileSizeInterval	time.Duration	// checks file size periodically
 }
 
 type Config func(*Options) error
@@ -24,8 +26,8 @@ func DefaultOptions() *Options {
 		dir: defaultDir,
 		alwaysFSync: false,
 		compactInterval: defaultCompactInterval,
-		syncInterval: defaultSyncInterval,
 		maxActiveFileSize: defaultMaxActiveFileSize,
+		checkFileSizeInterval: defaultActiveFileSizeCheckInterval,
 	}
 }
 
@@ -52,7 +54,8 @@ func WithCompactInterval(interval time.Duration) Config {
 
 func WithSyncInterval(interval time.Duration) Config {
 	return func(o *Options) error {
-		o.syncInterval = interval
+		o.alwaysFSync = false
+		o.syncInterval = &interval
 		return nil
 	}
 }

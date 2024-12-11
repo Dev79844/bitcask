@@ -21,4 +21,6 @@ func main() {
 	fmt.Println("keys:",keys)
 
 	b.Merge()
+
+	b.Close()
 }

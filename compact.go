@@ -137,3 +137,41 @@ func(b *Bitcask) SyncFile(interval time.Duration) error {
 	
 	return nil
 }
+
+func (b *Bitcask) CheckFileSize(interval time.Duration) error {
+	ticker := time.NewTicker(interval)
+
+	for range ticker.C{
+		if err := b.changeDF(); err!=nil{
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *Bitcask) changeDF() error {
+	b.Lock()
+	defer b.Unlock()
+
+	size, err := b.df.Size()
+	if err!=nil{
+		return err
+	}
+
+	if size < b.opts.maxActiveFileSize {
+		return nil
+	}
+
+	id := b.df.ID()
+
+	b.staleFiles[id] = b.df
+
+	df, err := datafile.New(b.opts.dir, id+1)
+	if err!=nil{
+		return err
+	}
+
+	b.df = df
+
+	return nil
+}

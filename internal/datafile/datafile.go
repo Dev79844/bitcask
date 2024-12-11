@@ -92,3 +92,12 @@ func (d *DataFile) Close() error {
 
 	return nil
 }
+
+func (d *DataFile) Size() (int64, error) {
+	stat, err := d.writer.Stat()
+	if err!=nil{
+		return -1, fmt.Errorf("error fetching file stats: %v", err)
+	}
+
+	return stat.Size(), nil
+}

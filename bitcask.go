@@ -84,10 +84,15 @@ func Open(cfg ...Config) (*Bitcask, error) {
 	}
 
 	// goroutine for compaction
-	go b.RunCompactionWithInterval(b.opts.compactInterval)
+	go b.RunCompactionWithInterval(options.compactInterval)
 
 	// goroutine for running fsync periodically
-	go b.SyncFile(b.opts.syncInterval)
+	if b.opts.syncInterval != nil {
+		go b.SyncFile(*options.syncInterval)
+	}
+
+	// goroutine for checking file size and rotating it
+	go b.CheckFileSize(options.checkFileSizeInterval)
 
 	return b, nil
 }
