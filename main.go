@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	b, _ := internal.Open("./tmp")
+	b, _ := internal.Open()
 	b.Put("1", []byte("hello"))
 	b.Put("2", []byte("world"))
 	val1, _ := b.Get("1")

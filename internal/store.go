@@ -40,7 +40,7 @@ func (b *Bitcask) put(df *datafile.DataFile, k string, v []byte) error {
 	}
 
 	b.keydir[k] = keydir.Meta{
-		FileID: 1,
+		FileID: b.df.ID(),
 		RecordSz: len(buf.Bytes()),
 		RecordPos: offset + len(buf.Bytes()),
 		Tstamp: int(record.Header.Tstamp),

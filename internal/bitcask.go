@@ -3,8 +3,6 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	// "log"
-	// "os"
 	"sync"
 
 	"github.com/Dev79844/bitcask/internal/keydir"
@@ -19,8 +17,16 @@ type Bitcask struct{
 	staleFiles	map[int]*datafile.DataFile
 }
 
-func Open(dir string) (*Bitcask, error) {
-	files, err := getFiles(dir)
+func Open(cfg ...Config) (*Bitcask, error) {
+
+	options := DefaultOptions()
+	for _, ops := range cfg{
+		if err := ops(options); err!=nil{
+			return nil, err
+		}
+	}
+
+	files, err := getFiles(options.dir)
 	if err!=nil{
 		return nil, fmt.Errorf("error getting the existing files: %v", err)
 	}
@@ -39,7 +45,7 @@ func Open(dir string) (*Bitcask, error) {
 		index = ids[len(ids) - 1] + 1
 
 		for _,idx := range ids{
-			df, err := datafile.New(dir, idx)
+			df, err := datafile.New(options.dir, idx)
 			if err != nil {
 				return nil, err
 			}
@@ -47,7 +53,7 @@ func Open(dir string) (*Bitcask, error) {
 		}
 	}
 
-	df, err := datafile.New(dir, index)
+	df, err := datafile.New(options.dir, index)
 	if err!=nil{
 		return nil, fmt.Errorf("error creating a new datafile: %v", err)
 	}
