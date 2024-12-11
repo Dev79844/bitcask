@@ -19,4 +19,6 @@ func main() {
 
 	keys := b.List_Keys()
 	fmt.Println("keys:",keys)
+
+	b.Merge()
 }

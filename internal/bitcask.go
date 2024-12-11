@@ -3,10 +3,15 @@ package internal
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"sync"
 
-	"github.com/Dev79844/bitcask/internal/keydir"
 	"github.com/Dev79844/bitcask/internal/datafile"
+	"github.com/Dev79844/bitcask/internal/keydir"
+)
+
+var(
+	HINTS_FILE = "bitcask.hint"
 )
 
 type Bitcask struct{
@@ -15,6 +20,7 @@ type Bitcask struct{
 	df      	*datafile.DataFile
 	keydir		keydir.KeyDir
 	staleFiles	map[int]*datafile.DataFile
+	opts        *Options
 }
 
 func Open(cfg ...Config) (*Bitcask, error) {
@@ -60,14 +66,30 @@ func Open(cfg ...Config) (*Bitcask, error) {
 	
 	kd := make(keydir.KeyDir, 0)
 
-	return &Bitcask{
+	hintPath := filepath.Join(options.dir, HINTS_FILE)
+	if exists(hintPath){
+		if err := kd.Decode(hintPath); err!=nil{
+			return nil, fmt.Errorf("error populating keydir from hint file: %v", err)
+		}
+	}
+
+	b := &Bitcask{
 		df: df,
 		bufPool: sync.Pool{New: func() any {
 			return bytes.NewBuffer([]byte{})
 		}},
 		keydir: kd,
 		staleFiles: staleFiles,
-		}, nil
+		opts: options,
+	}
+
+	// goroutine for compaction
+	go b.RunCompactionWithInterval(b.opts.compactInterval)
+
+	// goroutine for running fsync periodically
+	go b.SyncFile(b.opts.syncInterval)
+
+	return b, nil
 }
 
 func (b *Bitcask) Put(key string, value []byte) error {
@@ -139,4 +161,11 @@ func (b *Bitcask) Sync() error {
 	defer b.Unlock()
 
 	return b.df.Sync()
+}
+
+func (b *Bitcask) Merge() error {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.RunCompaction()
 }

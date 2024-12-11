@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"os"
 )
 
 func getFiles(dir string) ([]string, error) {
@@ -30,4 +31,12 @@ func getIDs(files []string) ([]int, error) {
 	sort.Ints(ids)
 
 	return ids, nil
+}
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	if err!=nil{
+		return false
+	}
+	return true
 }

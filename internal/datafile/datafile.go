@@ -80,3 +80,15 @@ func (d *DataFile) Read(pos, size int) ([]byte, error) {
 func (d *DataFile) Sync() error {
 	return d.writer.Sync()
 }
+
+func (d *DataFile) Close() error {
+	if err := d.writer.Close(); err!=nil{
+		return err
+	}
+
+	if err := d.reader.Close(); err!=nil{
+		return err
+	}
+
+	return nil
+}
