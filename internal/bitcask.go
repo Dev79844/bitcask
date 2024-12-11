@@ -101,3 +101,16 @@ func (b *Bitcask) Delete(key string) error {
 
 	return b.delete(key)
 }
+
+func (b *Bitcask) List_Keys() []string {
+	b.Lock()
+	defer b.Unlock()
+
+	keys := make([]string, 0, len(b.keydir))
+
+	for k := range b.keydir {
+		keys = append(keys, k)
+	}
+
+	return keys
+}
