@@ -17,6 +17,7 @@ type Options struct{
 	syncInterval    		*time.Duration 	// time interval for fsync
 	maxActiveFileSize		int64 			//max active file size
 	checkFileSizeInterval	time.Duration	// checks file size periodically
+	readOnly				bool			// if enabled only reads are allowed
 }
 
 type Config func(*Options) error
@@ -28,6 +29,7 @@ func DefaultOptions() *Options {
 		compactInterval: defaultCompactInterval,
 		maxActiveFileSize: defaultMaxActiveFileSize,
 		checkFileSizeInterval: defaultActiveFileSizeCheckInterval,
+		readOnly: false,
 	}
 }
 

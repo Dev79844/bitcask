@@ -3,7 +3,9 @@ package bitcask
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/Dev79844/bitcask/internal/datafile"
@@ -21,10 +23,10 @@ type Bitcask struct{
 	keydir		keydir.KeyDir
 	staleFiles	map[int]*datafile.DataFile
 	opts        *Options
+	l			*slog.Logger
 }
 
 func Open(cfg ...Config) (*Bitcask, error) {
-
 	options := DefaultOptions()
 	for _, ops := range cfg{
 		if err := ops(options); err!=nil{
@@ -40,6 +42,7 @@ func Open(cfg ...Config) (*Bitcask, error) {
 	var(
 		index = 0
 		staleFiles = map[int]*datafile.DataFile{}
+		l = initLogger()
 	)
 
 	if len(files) > 0{
@@ -81,6 +84,7 @@ func Open(cfg ...Config) (*Bitcask, error) {
 		keydir: kd,
 		staleFiles: staleFiles,
 		opts: options,
+		l: l,
 	}
 
 	// goroutine for compaction
@@ -105,6 +109,11 @@ func (b *Bitcask) Put(key string, value []byte) error {
 		return ErrEmptyKey
 	}
 
+	if b.opts.readOnly{
+		return ErrReadOnly
+	}
+
+	b.l.Info("storing", "key", key, "value", value)
 	return b.put(b.df, key, value)
 }
 
@@ -116,6 +125,7 @@ func (b *Bitcask) Get(key string) ([]byte, error) {
 		return nil, ErrEmptyKey
 	}
 	
+	b.l.Info("getting value","key", key)
 	row, err := b.get(key)
 	if err!=nil{
 		return nil, fmt.Errorf("error getting the record: %v", err)
@@ -132,6 +142,15 @@ func (b *Bitcask) Delete(key string) error {
 	b.Lock()
 	defer b.Unlock()
 
+	if len(key) == 0 {
+		return ErrEmptyKey
+	}
+
+	if b.opts.readOnly{
+		return ErrReadOnly
+	}
+
+	b.l.Info("removing data", "key", key)
 	return b.delete(key)
 }
 
@@ -172,6 +191,7 @@ func (b *Bitcask) Merge() error {
 	b.Lock()
 	defer b.Unlock()
 
+	b.l.Info("merging all files")
 	return b.RunCompaction()
 }
 
@@ -180,15 +200,18 @@ func (b *Bitcask) Close() error {
 	defer b.Unlock()
 
 	if err := b.generateHintFiles(); err!=nil{
+		b.l.Error("error generating hint file")
 		return err
 	}
 
 	if err := b.df.Close(); err!=nil{
+		b.l.Error("error closing the active data file")
 		return err
 	}
 
 	for _, df := range b.staleFiles {
 		if err := df.Close(); err!=nil{
+			b.l.Error("error closing the stale file", slog.String("%d", strconv.Itoa(df.ID())))
 			return err
 		}
 	}

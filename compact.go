@@ -22,10 +22,12 @@ func (b *Bitcask) RunCompactionWithInterval(interval time.Duration) error {
 
 func (b *Bitcask) RunCompaction() error {
 	if err := b.merge(); err!=nil{
+		b.l.Error("error merging the old files", "error", err)
 		return err
 	}
 	
 	if err := b.generateHintFiles(); err!=nil{
+		b.l.Error("error generating hint file")
 		return err
 	}
 
@@ -131,6 +133,7 @@ func(b *Bitcask) SyncFile(interval time.Duration) error {
 
 	for range ticker.C{
 		if err := b.Sync(); err!=nil{
+			b.l.Error("error syncing db file to disk", "error", err)
 			return err
 		}
 	}
@@ -143,6 +146,7 @@ func (b *Bitcask) CheckFileSize(interval time.Duration) error {
 
 	for range ticker.C{
 		if err := b.changeDF(); err!=nil{
+			b.l.Error("error rotating the df", "error", err)
 			return err
 		}
 	}
