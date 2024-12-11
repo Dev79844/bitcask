@@ -114,3 +114,23 @@ func (b *Bitcask) List_Keys() []string {
 
 	return keys
 }
+
+func (b *Bitcask) Fold(fn func(k string) error) error {
+	b.Lock()
+	defer b.Unlock()
+
+	for k := range b.keydir{
+		if err := fn(k); err!=nil{
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *Bitcask) Sync() error {
+	b.Lock()
+	defer b.Unlock()
+
+	return b.df.Sync()
+}

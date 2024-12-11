@@ -76,3 +76,7 @@ func (d *DataFile) Read(pos, size int) ([]byte, error) {
 
 	return record, nil
 }
+
+func (d *DataFile) Sync() error {
+	return d.writer.Sync()
+}
