@@ -1,0 +1,7 @@
+[server]
+addr = ":7379"
+
+[app]
+dir = "data"
+read_only = false
+alwaysFSync = false

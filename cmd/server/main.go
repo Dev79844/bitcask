@@ -11,6 +11,7 @@ import (
 
 	"github.com/Dev79844/bitcask"
 	"github.com/tidwall/redcon"
+	"github.com/spf13/viper"
 )
 
 type App struct {
@@ -18,7 +19,18 @@ type App struct {
 	bitcask *bitcask.Bitcask
 }
 
+func initConfig() error {
+	viper.SetConfigName("config")
+	viper.SetConfigType("toml")
+	viper.AddConfigPath(".")
+
+	log.Println("initialising config")
+	err := viper.ReadInConfig()
+	return err
+}
+
 func initLogger() *slog.Logger {
+	log.Println("initialising logger")
 	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
         Level: slog.LevelInfo,
     }))
@@ -91,13 +103,29 @@ func (app *App) exit(conn redcon.Conn, cmd redcon.Command) {
 
 
 func main() {
+	err := initConfig()
+	if err!=nil {
+		log.Fatal("error reading the config")
+		return
+	}
 	app := &App{
 		l: initLogger(),
 	}
 
+	app.l.Info("setting up the bitcask server")
+
 	cfg := []bitcask.Config{
-		bitcask.WithDir("cmd/server/data"),
-		bitcask.WithMaxActiveFileSize(4096),
+		bitcask.WithDir(viper.GetString("app.dir")),
+	}
+
+	if viper.GetBool("app.alwaysFSync"){
+		app.l.Info("db has alwaysFSync enabled")
+		cfg = append(cfg, bitcask.WithAlwaysFSync())
+	}
+
+	if viper.GetBool("app.read_only") {
+		app.l.Info("db in read only mode")
+		cfg = append(cfg, bitcask.WithReadOnly())
 	}
 
 	//initialise a bitcask instance
@@ -108,18 +136,21 @@ func main() {
 
 	app.bitcask = db
 
+	
 	mux := redcon.NewServeMux()
-
+	
 	mux.HandleFunc("ping", app.ping)
 	mux.HandleFunc("get", app.get)
 	mux.HandleFunc("set", app.set)
 	mux.HandleFunc("del", app.delete)
 	mux.HandleFunc("exit", app.exit)
 
+	app.l.Info(fmt.Sprintf("server is ready to accept connections on port %s", viper.GetString("server.addr")))
+	
 	//for graceful shutdown
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
-	srv := redcon.NewServer(":6379", 
+	srv := redcon.NewServer(viper.GetString("server.addr"), 
 		mux.ServeRESP,
 		func(conn redcon.Conn) bool {
 			// use this function to accept or deny the connection.

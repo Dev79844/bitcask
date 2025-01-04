@@ -68,3 +68,10 @@ func WithMaxActiveFileSize(fileSize int64) Config {
 		return nil
 	}
 }
+
+func WithReadOnly() Config {
+	return func(o *Options) error {
+		o.readOnly = true
+		return nil
+	}
+}
