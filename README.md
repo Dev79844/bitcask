@@ -2,6 +2,12 @@
 
 This is a golang implementation of [Bitcask by Riak](https://riak.com/assets/bitcask-intro.pdf) paper.
 
+### TODO
+- [ ] Transactions
+- [ ] BTree/Radix Tree based Indexing
+- [ ] Benchmarking
+- [ ] RAFT implementation
+
 ### Benefits of this approach
 
 - Low Latency: Write queries are handled with a single O(1) disk seek. Keys lookup happen in memory using a hash table lookup. This makes it possible to achieve low latency even with a lot of keys/values in the database. Bitcask also relies on the filesystem read-ahead cache for a faster reads.
